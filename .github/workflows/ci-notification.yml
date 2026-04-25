@@ -1,0 +1,43 @@
+name: Notification Service Production CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # 1. Code Quality
+  sonarqube:
+    uses: QuickHaulTransits/quickhaul-shared/.github/workflows/_sonarqube.yml@main
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  # 2. Dependency Scan
+  snyk:
+    needs: sonarqube
+    uses: QuickHaulTransits/quickhaul-shared/.github/workflows/_snyk.yml@main
+    secrets:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  # 3. Build & Push
+  docker:
+    needs: snyk
+    if: github.event_name == 'push'
+    uses: QuickHaulTransits/quickhaul-shared/.github/workflows/_docker-ci.yml@main
+    with:
+      image-name: quickhaul-notification
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+  # 4. Container Scan
+  trivy:
+    needs: docker
+    if: github.event_name == 'push'
+    uses: QuickHaulTransits/quickhaul-shared/.github/workflows/_trivy.yml@main
+    with:
+      image-name: quickhaul-notification
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}

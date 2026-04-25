@@ -1,0 +1,11 @@
+.git
+.github
+charts
+__pycache__
+*.pyc
+.env
+.venv
+venv
+*.log
+docker-compose.yml
+Dockerfile
