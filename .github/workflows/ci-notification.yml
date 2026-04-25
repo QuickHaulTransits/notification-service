@@ -44,9 +44,9 @@ jobs:
 
   # 5. Vulnerability Notification
   notify-vulnerabilities:
-    needs: [snyk, trivy]
-    # Runs only if Snyk or Trivy fails
-    if: failure() && (needs.snyk.result == 'failure' || needs.trivy.result == 'failure')
+    needs: [sonarqube, snyk, trivy]
+    # Runs if ANY of the scanning/quality steps fail
+    if: always() && (needs.sonarqube.result == 'failure' || needs.snyk.result == 'failure' || needs.trivy.result == 'failure')
     runs-on: ubuntu-latest
     steps:
       - name: Send Brevo Email Notification
@@ -59,6 +59,6 @@ jobs:
             --data '{
               "sender": {"name": "QuickHaul CI/CD Security", "email": "security@quickhaul.com"},
               "to": [{"email": "${{ secrets.ALERT_EMAIL }}", "name": "Security Team"}],
-              "subject": "🚨 Critical: Vulnerabilities found in Notification Service",
-              "htmlContent": "<h3>Security Alert</h3><p>Vulnerabilities were detected by Snyk or Trivy during the CI build for <b>notification-service</b>.</p><p>Please check the <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">GitHub Actions Logs</a> for more details.</p>"
+              "subject": "🚨 Critical: Security or Quality Failure in Notification Service",
+              "htmlContent": "<h3>Security / Quality Alert</h3><p>A failure was detected by <b>SonarQube</b>, <b>Snyk</b>, or <b>Trivy</b> during the CI build for <b>notification-service</b>.</p><p>Please check the <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">GitHub Actions Logs</a> immediately to resolve the vulnerabilities or code quality issues.</p>"
             }'
