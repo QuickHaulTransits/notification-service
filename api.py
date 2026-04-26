@@ -2,7 +2,7 @@ import logging
 from pydantic import BaseModel, EmailStr
 from fastapi import APIRouter
 
-from .service import send_email_notification, send_sms_notification
+from service import send_email_notification, send_sms_notification
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

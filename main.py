@@ -12,7 +12,7 @@ from shared.database import connect_to_db, close_db
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from .api import router
+from api import router
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
