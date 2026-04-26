@@ -5,10 +5,12 @@ on:
     branches: 
       - main
       - develop
+      - feature/ci-notification
   pull_request:
     branches:
       - main
       - develop
+      - feature/ci-notification
 
   workflow_dispatch:
 
