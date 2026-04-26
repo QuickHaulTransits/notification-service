@@ -16,6 +16,7 @@ python-dateutil
 pytz
 pytest
 pytest-asyncio
+pytest-cov
 black
 isort
 flake8
