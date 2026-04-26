@@ -15,44 +15,41 @@ on:
   workflow_dispatch:
 
 jobs:
-  # 0. Initial Test Suite
-  test:
-    name: unit-test / Pytest & Coverage
+  # 1. Quality Job (Tests + SonarQube)
+  quality:
+    name: quality / Test & SonarQube
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for SonarQube analysis
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
       - name: Run tests with coverage
         env:
           PYTHONPATH: .
         run: |
           pytest --cov=. --cov-report=xml --cov-report=term-missing tests/
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage.xml
 
-  # 1. Code Quality (SAST)
-  sast:
-    name: sast / SonarQube Analysis
-    needs: test
-    uses: QuickHaulTransits/quickhaul-templates/.github/workflows/_sonarqube.yml@feature/templates
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-  # 2. Dependency Scan (SCA) For python
+  # 2. Dependency Scan (SCA)
   sca:
     name: sca / Snyk Scan
-    needs: sast
+    needs: quality
     uses: QuickHaulTransits/quickhaul-templates/.github/workflows/_snyk-python.yml@feature/templates
     secrets:
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -69,16 +66,7 @@ jobs:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_TOKEN }}
 
-  # 4. Publish Image (Placeholder if separate in templates)
-  publish:
-    name: publish / Publish Image
-    needs: build
-    if: false # Controlled by docker-ci workflow usually
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Image published via Docker-CI"
-
-  # 5. Notifications for SCA (Snyk)
+  # 4. Notifications for SCA (Snyk)
   notify-snyk:
     name: notify-snyk / Send Email Alert
     needs: sca
@@ -99,7 +87,7 @@ jobs:
               "htmlContent": "<h3>Snyk Scan Failed</h3><p>Vulnerabilities detected in <b>notification-service</b> dependencies.</p>"
             }'
 
-  # 6. Notifications for Build/Trivy
+  # 5. Notifications for Build/Trivy
   notify-trivy:
     name: notify-trivy / Send Email Alert
     needs: build

@@ -9,6 +9,12 @@ def test_read_root():
     assert True
 
 def test_health_check():
-    """Placeholder for health check test"""
-    # Assuming there's a health endpoint, otherwise this just tests the app can be imported
+    """Test the health check endpoint"""
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "healthy"
+    assert response.json()["service"] == "notification"
+
+def test_app_exists():
+    """Verify the app object is created"""
     assert app is not None
