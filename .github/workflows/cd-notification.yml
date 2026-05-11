@@ -1,0 +1,59 @@
+name: CD - Deploy to Kubernetes
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  id-token: write # Required for OIDC
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Example for GCP Workload Identity
+      # - name: Authenticate to Google Cloud
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: 'projects/123456789/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+      #     service_account: 'github-actions-sa@project-id.iam.gserviceaccount.com'
+
+      # Example for AWS OIDC
+      # - name: Configure AWS Credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: arn:aws:iam::123456789:role/github-actions-role
+      #     aws-region: us-east-1
+
+      - name: Set Environment
+        run: |
+          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+            echo "ENV=prod" >> $GITHUB_ENV
+            echo "TAG=prod-${{ github.sha }}" >> $GITHUB_ENV
+          else
+            echo "ENV=dev" >> $GITHUB_ENV
+            echo "TAG=dev-${{ github.sha }}" >> $GITHUB_ENV
+          fi
+
+      - name: Update Helm Chart Repo
+        run: |
+          # This step clones the quickhaul-config repo, updates the image tag, and pushes back.
+          # In a production-grade OIDC setup, you would use a GitHub App token or OIDC-based git auth.
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          
+          git clone https://github.com/QuickHaulTransits/quickhaul-config.git config-repo
+          cd config-repo/charts/notification-service
+          
+          # Use yq or sed to update values.yaml
+          sed -i "s/tag: .*/tag: \"${{ env.TAG }}\"/" values.yaml
+          
+          git add values.yaml
+          git commit -m "Update notification-service image tag to ${{ env.TAG }} for ${{ env.ENV }}"
+          git push origin main

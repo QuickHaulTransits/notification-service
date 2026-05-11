@@ -1,0 +1,39 @@
+replicaCount: 1
+
+image:
+  repository: quickhaul/notification-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+# Blue-Green Strategy (Only used if strategy type is Rollout)
+strategy:
+  type: Deployment # Default to Deployment
+  blueGreen:
+    activeService: notification-service-active
+    previewService: notification-service-preview
+    autoPromotionEnabled: true
+
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: notification.quickhaul.com
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+
+env:
+  KEYCLOAK_URL: "http://keycloak.keycloak.svc.cluster.local:8080"
+  KEYCLOAK_REALM: "QuickHaul"
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
